@@ -38,5 +38,5 @@ Init script creates tables:
 #### Access rights
 **instance-scheduler-users** table's "groups" field is matched with **instance-scheduler-groups** table. Each user can be included into multiple groups. So, access matrix for each user can be individual and flexible.
 
-When new user is registered, appropriate fields are created in **instance-scheduler-users** table and group with username's name and username's filter are created in the **instance-scheduler-groups** table. It means that new user will be able to manage only instances with the same name as his login.    
+When new user is registered, appropriate fields are created in **instance-scheduler-users** table and group with username's name and username's filter fields is created in the **instance-scheduler-groups** table. It means that new user will be able to manage only instances with the same name as his login.    
  

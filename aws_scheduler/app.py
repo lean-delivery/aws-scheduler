@@ -276,7 +276,7 @@ def register():
             return "Username already exists"
         if request.form['password'] == request.form['password2']:
             db_put_item(USERS_TABLE_NAME, {'username': request.form['username'], 'password': hash_password(request.form['password']), 'groups': [request.form['username']]})
-            db_put_item(GROUPS_TABLE_NAME, {'group_name': request.form['username'], 'filters': [{'Values': ["dev_{0}".format(request.form['username'])], 'Name': 'tag:Name'}]})
+            db_put_item(GROUPS_TABLE_NAME, {'group_name': request.form['username'], 'filters': [{'Values': ["{0}".format(request.form['username'])], 'Name': 'tag:Name'}]})
             app.logger.info('%s registered successfully', request.form['username'])
             return redirect(url_for('index'))
         else:

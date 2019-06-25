@@ -22,6 +22,8 @@ There is an "instance-scheduler-default-schedules" table in DynamoDB which store
 
 **Each instance can be included only in one schedule.**
 
+Principal scheme:
+![](https://i.ibb.co/SfLmrxn/aws-scheduler.jpg)
 
 #### Installation
 **For using **aws-scheduler** you must have [AWS instance scheduler](https://docs.aws.amazon.com/solutions/latest/instance-scheduler/welcome.html) installed and configured.**

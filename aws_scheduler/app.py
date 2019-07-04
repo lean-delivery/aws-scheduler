@@ -1,5 +1,6 @@
 import os
 import boto3
+from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
 from flask import Flask
 from flask import session
@@ -39,9 +40,21 @@ CRON_START_MINUTE = 45
 CRON_TIMEZONE = "Europe/Minsk"
 
 # aws connection config
-region = "eu-central-1"
-DYNAMODB_RESOURCE = boto3.resource('dynamodb', region_name=region)
-EC2_CLIENT = boto3.client('ec2', region_name=region)
+REGION_DYNAMO_DB = "eu-central-1"  # region where dynamodb tables for web app are stored
+REGIONS_EC2 = ["eu-central-1", "us-east-1", "ap-south-1"]  # list of regions from which ec2 instances will be displayed
+
+
+# create connections to AWS
+def create_aws_connections():
+    dynamodb_resource = boto3.resource('dynamodb', region_name=REGION_DYNAMO_DB)
+    regions_ec2_dict = {}
+    for region in REGIONS_EC2:
+        regions_ec2_dict[region] = boto3.client('ec2', region_name=region)
+    return dynamodb_resource, regions_ec2_dict
+
+
+DYNAMODB_RESOURCE, EC2_CLIENTS = create_aws_connections()
+MULTI_REGIONAL = len(REGIONS_EC2) > 1  # flag to define if app is used in multiple or single region in aws
 
 
 # change flask log output format
@@ -137,25 +150,37 @@ def ec2_instances(all_instances=False):
         list_of_filters = get_user_filters()
     for filters in list_of_filters:
         filters.append({'Name': 'instance-state-name', 'Values': STATE_FILTER_INCLUDE_PATTERNS})  # add state filters
-        for reservation in EC2_CLIENT.describe_instances(Filters=filters)["Reservations"]:
-            for instance in reservation["Instances"]:
-                if "Tags" in instance:
-                    if filtered(instance["Tags"]):  # filter unwanted instances
-                        continue
-                    instance["InstanceName"] = get_tag(instance["Tags"], "Name")  # for convenience move Name tag to dedicated dict key
-                    instance["Schedule"] = get_tag(instance["Tags"], "Schedule")  # for convenience move Schedule tag to dedicated dict key
-                else:  # if no tags found - create tags with special phrases
-                    instance["InstanceName"] = "INSTANCE WITH NO TAGS"
-                    instance["Schedule"] = "INSTANCE WITH NO TAGS"
-                yield {"InstanceId": instance["InstanceId"], "InstanceName": instance["InstanceName"], "Schedule": instance["Schedule"]}
+        try:
+            for region_name, ec2_client in EC2_CLIENTS.items():
+                for reservation in ec2_client.describe_instances(Filters=filters)["Reservations"]:
+                    for instance in reservation["Instances"]:
+                        if "Tags" in instance:
+                            if filtered(instance["Tags"]):  # filter unwanted instances
+                                continue
+                            instance["InstanceName"] = get_tag(instance["Tags"], "Name")  # for convenience move Name tag to dedicated dict key
+                            instance["Schedule"] = get_tag(instance["Tags"], "Schedule")  # for convenience move Schedule tag to dedicated dict key
+                        else:  # if no tags found - create tags with special phrases
+                            instance["InstanceName"] = "INSTANCE WITH NO TAGS"
+                            instance["Schedule"] = "INSTANCE WITH NO TAGS"
+                        if MULTI_REGIONAL:  # add region name to instance name if app is used in multiple regions
+                            instance["InstanceName"] = "{0} ({1})".format(instance["InstanceName"], region_name)
+                        yield {"InstanceId": instance["InstanceId"],
+                               "InstanceName": instance["InstanceName"],
+                               "Schedule": instance["Schedule"],
+                               "Region": region_name}
+        except ClientError as err:
+            if err.response["Error"]["Code"] == "InvalidInstanceID.NotFound":
+                continue
+            else:
+                app.logger.error(err)
 
 
-def remove_tag_from_ec2_instance(instance_id, tag_name=DEFAULT_SCHEDULE_TAG_NAME):
-    return EC2_CLIENT.delete_tags(Resources=[instance_id], Tags=[{"Key": tag_name}])
+def remove_tag_from_ec2_instance(instance_id, instance_region, tag_name=DEFAULT_SCHEDULE_TAG_NAME):
+    return EC2_CLIENTS[instance_region].delete_tags(Resources=[instance_id], Tags=[{"Key": tag_name}])
 
 
-def add_tag_to_ec2_instance(instance_id, schedule_name, tag_name=DEFAULT_SCHEDULE_TAG_NAME):
-    return EC2_CLIENT.create_tags(Resources=[instance_id], Tags=[{"Key": tag_name, "Value": schedule_name}])
+def add_tag_to_ec2_instance(instance_id, instance_region, schedule_name, tag_name=DEFAULT_SCHEDULE_TAG_NAME):
+    return EC2_CLIENTS[instance_region].create_tags(Resources=[instance_id], Tags=[{"Key": tag_name, "Value": schedule_name}])
 
 
 def return_default_tag_to_instances():
@@ -164,14 +189,14 @@ def return_default_tag_to_instances():
         if "default_schedule" not in item:
             app.logger.error('Unable to return default schedule tag to instance(s) %s because schedule field is empty in database', item["instance_name"])
             continue
-        response = (EC2_CLIENT.describe_instances(Filters=[{"Name": "tag:Name", "Values": [item["instance_name"]]}]))
+        response = (EC2_CLIENTS[item["region_name"]].describe_instances(Filters=[{"Name": "tag:Name", "Values": [item["instance_name"]]}]))
         if len(response["Reservations"]) == 0:
             app.logger.error('Unable to return default schedule tag to instance(s) %s because no instance(s) with such name found', item["instance_name"])
             continue
         else:
             for reservation in response["Reservations"]:
                 for instance in reservation["Instances"]:
-                    response = add_tag_to_ec2_instance(instance["InstanceId"], item["default_schedule"])
+                    response = add_tag_to_ec2_instance(instance["InstanceId"], item["region_name"], item["default_schedule"])
                     if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
                         app.logger.info('Default tag %s returned to instance %s', item["default_schedule"], item["instance_name"])
                     else:
@@ -287,9 +312,9 @@ def register():
 @login_required
 def remove():
     if request.method == "POST":
-        response = remove_tag_from_ec2_instance(request.form['instance_id'])
+        response = remove_tag_from_ec2_instance(request.form['instance_id'], request.form['instance_region'])
         if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-            app.logger.info('instance %s was removed from schedule by %s', request.form['instance_id'], session['username'])
+            app.logger.info('instance %s in region %s was removed from schedule by %s', request.form['instance_id'], request.form['instance_region'], session['username'])
             return redirect(url_for('index'))
         else:
             return response
@@ -299,9 +324,10 @@ def remove():
 @login_required
 def add():
     if request.method == "POST":
-        response = add_tag_to_ec2_instance(request.form['instance_id'], request.form['schedule_name'])
+        instance_id, region = request.form['instance_id'].split()  # TODO: need to refactor frontend to send this in separate variables
+        response = add_tag_to_ec2_instance(instance_id, region, request.form['schedule_name'])
         if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-            app.logger.info('%s was added to %s schedule by %s', request.form['instance_id'], request.form['schedule_name'], session['username'])
+            app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region, request.form['schedule_name'], session['username'])
             return redirect(url_for('index'))
         else:
             return response

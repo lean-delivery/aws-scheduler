@@ -16,46 +16,45 @@ import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
 from logging.config import dictConfig
 
+from flask_expects_json import expects_json
+import sch_vars
 
-# dynamodb connection config
-CONFIG_TABLE_NAME = "instance-scheduler-ConfigTable"  # created when deploying aws instance scheduler
-USERS_TABLE_NAME = "instance-scheduler-users"  # created by init script
-GROUPS_TABLE_NAME = "instance-scheduler-groups"  # created by init script
-DEFAULT_SCHEDULES_TABLE_NAME = "instance-scheduler-default-schedules"  # created by init script
 
-# tagging config
-DEFAULT_SCHEDULE_TAG_NAME = "Schedule"  # tag name to store "schedule name", configured when deploying aws instance scheduler
+# json validation
+set_tag_schema = {
+    'type': 'object',
+    'properties': {
+        'Key': {'type': 'string'},
+        'Value': {'type': 'string'}
+    },
+    'required': ['Key', 'Value']
+}
 
-# filtering options
-STATE_FILTER_INCLUDE_PATTERNS = ['pending', 'running', 'stopping', 'stopped', 'shutting-down']  # if ec2 machine is in any of these states - it is not filtered
-NAME_FILTER_EXCLUDE_PATTERNS = ["CI", "terminated"]  # if ec2 machine name tag contain any of these string - it is filtered
-
-# username requirements for new users
-USERNAME_REGISTER_FILTERS = ()  # forbid using usernames which started with strings in this tuple, e.g ('euv', 'ruv'), if you don't have name convention restrictions just leave it empty
-USERNAME_MIN_LENGTH = 8
-
-# return default tag schedule task config
-CRON_START_HOUR = 7
-CRON_START_MINUTE = 45
-CRON_TIMEZONE = "Europe/Minsk"
-
-# aws connection config
-REGION_DYNAMO_DB = "eu-central-1"  # region where dynamodb tables for web app are stored
-REGIONS_EC2 = ["eu-central-1", "us-east-1", "ap-south-1"]  # list of regions from which ec2 instances will be displayed
+remove_tag_schema = {
+    'type': 'array',
+    'items': {
+        'type': 'string'
+    }
+}
 
 
 # create connections to AWS
 def create_aws_connections():
-    dynamodb_resource = boto3.resource('dynamodb', region_name=REGION_DYNAMO_DB)
+    dynamodb_resource = boto3.resource('dynamodb', region_name=sch_vars.REGION_DYNAMO_DB)
+
     regions_ec2_dict = {}
-    for region in REGIONS_EC2:
+    for region in sch_vars.REGIONS_EC2:
         regions_ec2_dict[region] = boto3.client('ec2', region_name=region)
-    return dynamodb_resource, regions_ec2_dict
+
+    rds_dict = {}
+    for region in sch_vars.REGIONS_RDS:
+        rds_dict[region] = boto3.client('rds', region_name=region)
+
+    return dynamodb_resource, regions_ec2_dict, rds_dict
 
 
-DYNAMODB_RESOURCE, EC2_CLIENTS = create_aws_connections()
-MULTI_REGIONAL = len(REGIONS_EC2) > 1  # flag to define if app is used in multiple or single region in aws
-
+DYNAMODB_RESOURCE, EC2_CLIENTS, RDS_CLIENTS = create_aws_connections()
+MULTI_REGIONAL = len(sch_vars.REGIONS_EC2) > 1  # flag to define if app is used in multiple or single region in aws
 
 # change flask log output format
 dictConfig({
@@ -119,19 +118,31 @@ def db_get_item(table_name, key):
     return DYNAMODB_RESOURCE.Table(table_name).get_item(Key=key)
 
 
+# return list<dict>, much easier to work with this method
+def get_user_filters_v2():
+    filters = []
+    if session:
+        groups = db_get_item(sch_vars.USERS_TABLE_NAME, {"username": session['username']})['Item']['groups']
+        for group in groups:
+            for filter in db_get_item(sch_vars.GROUPS_TABLE_NAME, {'group_name': group})['Item']['filters']:
+                filters.append(filter)
+    return filters
+
+
+# return list<list<dict>>, better to move to v2 version
 def get_user_filters():
     filters = []
     if session:
-        groups = db_get_item(USERS_TABLE_NAME, {"username": session['username']})['Item']['groups']
+        groups = db_get_item(sch_vars.USERS_TABLE_NAME, {"username": session['username']})['Item']['groups']
         for group in groups:
-            filters.append(db_get_item(GROUPS_TABLE_NAME, {'group_name': group})['Item']['filters'])
+            filters.append(db_get_item(sch_vars.GROUPS_TABLE_NAME, {'group_name': group})['Item']['filters'])
     return filters
 
 
 def filtered(tags):
     for tag in tags:
         for value in tag.values():
-            if any(filter_pattern in value for filter_pattern in NAME_FILTER_EXCLUDE_PATTERNS):
+            if any(filter_pattern in value for filter_pattern in sch_vars.NAME_FILTER_EXCLUDE_PATTERNS):
                 return True
 
 
@@ -149,7 +160,7 @@ def ec2_instances(all_instances=False):
     else:
         list_of_filters = get_user_filters()
     for filters in list_of_filters:
-        filters.append({'Name': 'instance-state-name', 'Values': STATE_FILTER_INCLUDE_PATTERNS})  # add state filters
+        filters.append({'Name': 'instance-state-name', 'Values': sch_vars.STATE_FILTER_INCLUDE_PATTERNS})  # add state filters
         try:
             for region_name, ec2_client in EC2_CLIENTS.items():
                 for reservation in ec2_client.describe_instances(Filters=filters)["Reservations"]:
@@ -175,16 +186,43 @@ def ec2_instances(all_instances=False):
                 app.logger.error(err)
 
 
-def remove_tag_from_ec2_instance(instance_id, instance_region, tag_name=DEFAULT_SCHEDULE_TAG_NAME):
+def rds_instances(all_instances=False):
+    filters = [] if all_instances else get_user_filters_v2()
+    for region_name, rds_client in RDS_CLIENTS.items():
+        try:
+            for db_instance in rds_client.describe_db_instances()["DBInstances"]:
+                if db_instance['DBInstanceStatus'] not in RDS_sch_vars.STATE_FILTER_INCLUDE_PATTERNS:
+                    continue
+                rds_tags = rds_client.list_tags_for_resource(ResourceName=db_instance['DBInstanceArn'])['TagList']
+                db_instance["InstanceName"] = db_instance['DBInstanceIdentifier']
+                db_instance["Schedule"] = next((rds_tag for rds_tag in rds_tags if rds_tag['Key'] == 'Schedule'), {}).get("Value", "INSTANCE WITH NO TAGS")
+                if filters and not any(any(rds_tag['Key'] == filter['Name'] for rds_tag in rds_tags) and any(rds_tag['Value'] in filter['Values'] for rds_tag in rds_tags) for filter in filters):
+                    continue
+                if MULTI_REGIONAL:
+                    db_instance["InstanceName"] = "{0} ({1})".format(db_instance["DBInstanceIdentifier"], region_name)
+                yield {
+                    "InstanceId": db_instance["DBInstanceIdentifier"],
+                    "InstanceName": db_instance["InstanceName"],
+                    "Schedule": db_instance["Schedule"],
+                    "Region": region_name
+                }
+        except ClientError as err:
+            if err.response["Error"]["Code"] == "InvalidInstanceID.NotFound":
+                continue
+            else:
+                app.logger.error(err)
+
+
+def remove_tag_from_ec2_instance(instance_id, instance_region, tag_name=sch_vars.DEFAULT_SCHEDULE_TAG_NAME):
     return EC2_CLIENTS[instance_region].delete_tags(Resources=[instance_id], Tags=[{"Key": tag_name}])
 
 
-def add_tag_to_ec2_instance(instance_id, instance_region, schedule_name, tag_name=DEFAULT_SCHEDULE_TAG_NAME):
+def add_tag_to_ec2_instance(instance_id, instance_region, schedule_name, tag_name=sch_vars.DEFAULT_SCHEDULE_TAG_NAME):
     return EC2_CLIENTS[instance_region].create_tags(Resources=[instance_id], Tags=[{"Key": tag_name, "Value": schedule_name}])
 
 
 def return_default_tag_to_instances():
-    table = DYNAMODB_RESOURCE.Table(DEFAULT_SCHEDULES_TABLE_NAME)
+    table = DYNAMODB_RESOURCE.Table(sch_vars.DEFAULT_SCHEDULES_TABLE_NAME)
     for item in table.scan()["Items"]:
         if "default_schedule" not in item:
             app.logger.error('Unable to return default schedule tag to instance(s) %s because schedule field is empty in database', item["instance_name"])
@@ -205,11 +243,11 @@ def return_default_tag_to_instances():
 
 def schedules_combined_with_periods():
     schedules = []
-    for schedule in db_query(CONFIG_TABLE_NAME, type="schedule")['Items']:
+    for schedule in db_query(sch_vars.CONFIG_TABLE_NAME, type="schedule")['Items']:
         periods = []
         if "periods" in schedule:
             for period in schedule['periods']:
-                periods += db_query(CONFIG_TABLE_NAME, type='period', name=period)["Items"]
+                periods += db_query(sch_vars.CONFIG_TABLE_NAME, type='period', name=period)["Items"]
             if periods:
                 schedule['periods'] = periods
         schedules.append(schedule)
@@ -244,16 +282,44 @@ def schedules_combined_with_periods_and_ec2instances(all_instances=False):
     return schedules, []
 
 
+def schedules_combined_with_periods_and_rds_instances():
+    instances_readonly = sorted([i for i in rds_instances(all_instances=True)], key=lambda k: k['InstanceName'])
+    if session:
+        instances_manageable = sorted([i for i in rds_instances(all_instances=False)], key=lambda k: k['InstanceName'])
+        instances_readonly = [item for item in instances_readonly if item not in instances_manageable]
+    schedules = schedules_combined_with_periods()
+
+    for schedule in schedules:
+        if session:
+            rds_instances_manageable_temp_list = []
+            for instance in instances_manageable:
+                if instance["Schedule"] == schedule["name"]:
+                    rds_instances_manageable_temp_list.append(instance)
+                    continue
+            schedule.update({"rds_instances_manageable": rds_instances_manageable_temp_list})
+
+        rds_instances_readonly_temp_list = []
+        for instance in instances_readonly:
+            if instance["Schedule"] == schedule["name"]:
+                rds_instances_readonly_temp_list.append(instance)
+                continue
+        schedule.update({"rds_instances_readonly": rds_instances_readonly_temp_list})
+
+    if session:
+        return schedules, instances_manageable
+    return schedules, []
+
+
 def validate_username_length(username):
-    return len(username) >= USERNAME_MIN_LENGTH
+    return len(username) == sch_vars.USERNAME_LENGHT_FILTERS
 
 
 def validate_username_name_convention(username):
-    return username.lower().startswith(USERNAME_REGISTER_FILTERS)
+    return username.lower().startswith(sch_vars.USERNAME_REGISTER_FILTERS)
 
 
 def validate_username_exist(username):
-    return "Item" not in db_get_item(USERS_TABLE_NAME, {"username": username})
+    return "Item" not in db_get_item(sch_vars.USERS_TABLE_NAME, {"username": username})
 
 
 @app.route('/')
@@ -267,7 +333,7 @@ def login():
     if request.method == "GET":
         return render_template('login.html')
     elif request.method == "POST":
-        response = db_get_item(USERS_TABLE_NAME, {"username": request.form['username']})
+        response = db_get_item(sch_vars.USERS_TABLE_NAME, {"username": request.form['username']})
         if "Item" in response:
             if check_password(response['Item']['password'], request.form['password']):
                 session['logged_in'] = True
@@ -296,12 +362,13 @@ def register():
         return render_template('register.html')
     if request.method == "POST":
         if not validate_username_length(request.form['username']) or not validate_username_name_convention(request.form['username']):
-            return "Username does not comply with name convention requirements"
+            ret_str = "Please use your " + str(sch_vars.PROJECT_NAME) + " login for register ("+ str(sch_vars.USERNAME_LENGHT_FILTERS) +" simbols). i.e '" + str(sch_vars.USERNAME_REGISTER_FILTERS[0]) + "' + 5 symbols name abbreviation"
+            return ret_str
         if not validate_username_exist(request.form['username']):
             return "Username already exists"
         if request.form['password'] == request.form['password2']:
-            db_put_item(USERS_TABLE_NAME, {'username': request.form['username'], 'password': hash_password(request.form['password']), 'groups': [request.form['username']]})
-            db_put_item(GROUPS_TABLE_NAME, {'group_name': request.form['username'], 'filters': [{'Values': ["{0}".format(request.form['username'])], 'Name': 'tag:Name'}]})
+            db_put_item(sch_vars.USERS_TABLE_NAME, {'username': request.form['username'], 'password': hash_password(request.form['password']), 'groups': [request.form['username']]})
+            db_put_item(sch_vars.GROUPS_TABLE_NAME, {'group_name': request.form['username'], 'filters': [{'Values': ["dev_{0}".format(request.form['username'])], 'Name': 'tag:Name'}]})
             app.logger.info('%s registered successfully', request.form['username'])
             return redirect(url_for('index'))
         else:
@@ -333,8 +400,40 @@ def add():
             return response
 
 
+@expects_json(set_tag_schema)
+@app.route(
+    '/rds/regions/<string:region_id>/instances/<string:instance_id>/tags/add',
+    methods=['POST']
+)
+@login_required
+def set_tag(region_id, instance_id):
+    json_content = request.get_json()
+    response = RDS_CLIENTS[region_id].add_tags_to_resource(ResourceName=instance_id, Tags=[json_content])
+    if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+        app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region_id, request.form['schedule_name'], session['username'])
+        return redirect(url_for('index'))
+    else:
+        return response
+
+
+@expects_json(remove_tag_schema)
+@app.route(
+    '/rds/regions/<string:region_id>/instances/<string:instance_id>/tags/remove',
+    methods=['POST']
+)
+@login_required
+def remove_tag(region_id, instance_id):
+    json_content = request.get_json()
+    response = RDS_CLIENTS[region_id].remove_tags_from_resource(ResourceName=instance_id, TagKeys=json_content)
+    if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+        app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region_id, request.form['schedule_name'], session['username'])
+        return redirect(url_for('index'))
+    else:
+        return response
+
+
 # Add background job(s)
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=return_default_tag_to_instances, trigger="cron", hour=CRON_START_HOUR, minute=CRON_START_MINUTE, timezone=CRON_TIMEZONE)
+scheduler.add_job(func=return_default_tag_to_instances, trigger="cron", hour=sch_vars.CRON_START_HOUR, minute=sch_vars.CRON_START_MINUTE, timezone=sch_vars.CRON_TIMEZONE)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())  # Shut down the scheduler when exiting the app

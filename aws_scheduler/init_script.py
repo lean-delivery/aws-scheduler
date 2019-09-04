@@ -1,13 +1,14 @@
 import boto3
+import sch_vars
 
 
-region = "region"
-aws_access_key_id = "key_id"
-aws_secret_access_key = "access_key"
+region = sch_vars.region
+aws_access_key_id = sch_vars.aws_access_key_id
+aws_secret_access_key = sch_vars.aws_secret_access_key
 
-table_name_users = "instance-scheduler-users"
-table_name_groups = "instance-scheduler-groups"
-table_name_default_schedules = "instance-scheduler-default-schedules"
+table_name_users = sch_vars.USERS_TABLE_NAME
+table_name_groups = sch_vars.GROUPS_TABLE_NAME
+table_name_default_schedules = sch_vars.DEFAULT_SCHEDULES_TABLE_NAME
 
 dynamodb_resource = boto3.resource('dynamodb', region_name=region, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 

@@ -1,4 +1,6 @@
 import os
+from datetime import datetime, timezone, timedelta
+
 import boto3
 from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
@@ -191,7 +193,7 @@ def rds_instances(all_instances=False):
     for region_name, rds_client in RDS_CLIENTS.items():
         try:
             for db_instance in rds_client.describe_db_instances()["DBInstances"]:
-                if db_instance['DBInstanceStatus'] not in RDS_sch_vars.STATE_FILTER_INCLUDE_PATTERNS:
+                if db_instance['DBInstanceStatus'] not in sch_vars.RDS_STATE_FILTER_INCLUDE_PATTERNS:
                     continue
                 rds_tags = rds_client.list_tags_for_resource(ResourceName=db_instance['DBInstanceArn'])['TagList']
                 db_instance["InstanceName"] = db_instance['DBInstanceIdentifier']
@@ -239,6 +241,19 @@ def return_default_tag_to_instances():
                         app.logger.info('Default tag %s returned to instance %s', item["default_schedule"], item["instance_name"])
                     else:
                         app.logger.error('Return default schedule tag to instance %s error: %s', item["instance_name"], response["ResponseMetadata"])
+
+
+def set_up_default_tag():
+    for region_name, ec2_client in EC2_CLIENTS.items():
+        for reservation in ec2_client.describe_instances()["Reservations"]:
+            for instance in reservation["Instances"]:
+                tags = instance["Tags"]
+                launch_time_with_deploy_delay = instance["LaunchTime"] + timedelta(hours=3)
+                if datetime.now(timezone.utc) > launch_time_with_deploy_delay and not any(tag["Key"] == "Schedule" for tag in tags):
+                    ec2_client.create_tags(
+                        Resources=[instance["InstanceId"]],
+                        Tags=[{'Key': sch_vars.DEFAULT_SCHEDULE_TAG_NAME, 'Value': sch_vars.DEFAULT_SCHEDULE_TAG_VALUE}]
+                    )
 
 
 def schedules_combined_with_periods():
@@ -328,6 +343,12 @@ def index():
     return render_template('index.html', schedules=schedules, instances=instances)
 
 
+@app.route('/rds')
+def rds_index():
+    schedules, instances = schedules_combined_with_periods_and_rds_instances()
+    return render_template('rds.html', schedules=schedules, instances=instances)
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "GET":
@@ -411,7 +432,7 @@ def set_tag(region_id, instance_id):
     response = RDS_CLIENTS[region_id].add_tags_to_resource(ResourceName=instance_id, Tags=[json_content])
     if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
         app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region_id, request.form['schedule_name'], session['username'])
-        return redirect(url_for('index'))
+        return redirect(url_for('rds_index'))
     else:
         return response
 
@@ -427,13 +448,14 @@ def remove_tag(region_id, instance_id):
     response = RDS_CLIENTS[region_id].remove_tags_from_resource(ResourceName=instance_id, TagKeys=json_content)
     if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
         app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region_id, request.form['schedule_name'], session['username'])
-        return redirect(url_for('index'))
+        return redirect(url_for('rds_index'))
     else:
         return response
 
 
 # Add background job(s)
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=return_default_tag_to_instances, trigger="cron", hour=sch_vars.CRON_START_HOUR, minute=sch_vars.CRON_START_MINUTE, timezone=sch_vars.CRON_TIMEZONE)
+scheduler.add_job(func=return_default_tag_to_instances, trigger="cron", hour=sch_vars.CRON_START_HOUR, minute=sch_vars.CRON_START_MINUTE, timezone=sch_vars.CRON_TIMEZONE, id='return_default_tag_to_instances')
+scheduler.add_job(func=set_up_default_tag, trigger="interval", minutes=60, id='set_up_default_tag')
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())  # Shut down the scheduler when exiting the app

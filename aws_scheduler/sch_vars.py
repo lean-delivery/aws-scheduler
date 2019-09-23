@@ -25,6 +25,7 @@ USERNAME_REGISTER_FILTERS = ('prefix1', 'prefix2')
 USERNAME_LENGHT_FILTERS = 8
 
 DEFAULT_SCHEDULE_TAG_NAME = "Schedule"
+DEFAULT_SCHEDULE_TAG_VALUE = "mon-fri"
 
 REGION_DYNAMO_DB = "eu-central-1"  # region where dynamodb tables for web app are stored
 REGIONS_EC2 = ["eu-central-1", "us-east-1", "ap-south-1"]  # list of regions from which ec2 instances will be displayed

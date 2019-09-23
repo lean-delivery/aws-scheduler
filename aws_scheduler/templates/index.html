@@ -11,7 +11,7 @@
 {% block navigation_aside %}
     <aside class="navigation__aside">
         {% if session['logged_in'] %}
-        <a class="navigation__sdr" href="{{ url_for('Sdr') }}">RDS</a>
+        <a class="navigation__sdr" href="{{ url_for('rds_index') }}">RDS</a>
         <p class="navigation__greetings">Hello, <span class="bold">{{ session["username"] }}</span>!</p>
         <a class="navigation__logout" href="{{ url_for('logout') }}">Log&nbsp;Out</a>
         {% else %}

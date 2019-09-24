@@ -19,7 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from logging.config import dictConfig
 
 from flask_expects_json import expects_json
-import sch_vars
+from . import sch_vars
 
 
 # json validation

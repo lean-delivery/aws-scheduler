@@ -35,7 +35,7 @@
         <div class="row">
             <div class="quick-schedule__content col-12">
                 <h2 class="quick-schedule__title">Set up your today's schedule</h2>
-                <form class="quick-schedule__form quick-form row" action="/add_tag" method="post">
+                <form class="quick-schedule__form quick-form row" action="/rds/regions/<string:region_id>/instances/<string:instance_id>/tags/add" method="post">
                     <section class="quick-form__select col-12 col-md-4">
                         <p class="bold">Instance name</p>
                         <div class="select">

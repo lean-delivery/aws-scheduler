@@ -41,4 +41,20 @@ Init script creates tables:
 **instance-scheduler-users** table's "groups" field is matched with **instance-scheduler-groups** table. Each user can be included into multiple groups. So, access matrix for each user can be individual and flexible.
 
 When new user is registered, appropriate fields are created in **instance-scheduler-users** table and group with username's name and username's filter fields is created in the **instance-scheduler-groups** table. It means that new user will be able to manage only instances with the same name as his login.    
- 
+
+#### TODO
+1. Add a RDS instances' management possibility. The aws instance scheduler UI is able to start/stop rds instances but currently is possible to manage only ec2 instances tags via ui
+2. Add the custom returning default tag time for each instance. Currently there is the one scheduled job that runs on specific time and returns a default tags to instances. It means that each tag for the each instance will be returned in the same time.
+3. Add the possibility to customize a time for the returning default tag for the each instance. A possibility to manage the group of resources as an unified entity (exmpl: FE,BE instances grouped with DB). A possibility to manage the attribute of unifying.
+4. Add an admin page. Functions for the admin page:
+- view/change user groups
+- view/change groups
+- view/change group permissions
+- reset a user password
+- change/create schedules/periods
+- change/create default schedules for instances
+- If some group have been deleted re-assign users to some default group
+- A filter possibility to all screens
+5. Add a possibility for changing the password for an user
+6. Move config variables from code.
+7. Move config variables from a code to a dynamodb or yml or some cfg file and make possibility to read them from env-variables 

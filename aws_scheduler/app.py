@@ -19,7 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from logging.config import dictConfig
 
 from flask_expects_json import expects_json
-import sch_vars
+from . import sch_vars
 
 
 # json validation
@@ -203,6 +203,7 @@ def rds_instances(all_instances=False):
                 if MULTI_REGIONAL:
                     db_instance["InstanceName"] = "{0} ({1})".format(db_instance["DBInstanceIdentifier"], region_name)
                 yield {
+                    "DBInstanceArn": db_instance["DBInstanceArn"],
                     "InstanceId": db_instance["DBInstanceIdentifier"],
                     "InstanceName": db_instance["InstanceName"],
                     "Schedule": db_instance["Schedule"],
@@ -247,13 +248,14 @@ def set_up_default_tag():
     for region_name, ec2_client in EC2_CLIENTS.items():
         for reservation in ec2_client.describe_instances()["Reservations"]:
             for instance in reservation["Instances"]:
-                tags = instance["Tags"]
-                launch_time_with_deploy_delay = instance["LaunchTime"] + timedelta(hours=3)
-                if datetime.now(timezone.utc) > launch_time_with_deploy_delay and not any(tag["Key"] == "Schedule" for tag in tags):
-                    ec2_client.create_tags(
-                        Resources=[instance["InstanceId"]],
-                        Tags=[{'Key': sch_vars.DEFAULT_SCHEDULE_TAG_NAME, 'Value': sch_vars.DEFAULT_SCHEDULE_TAG_VALUE}]
-                    )
+                if "Tags" in instance:
+                    tags = instance["Tags"]
+                    launch_time_with_deploy_delay = instance["LaunchTime"] + timedelta(hours=3)
+                    if datetime.now(timezone.utc) > launch_time_with_deploy_delay and not any(tag["Key"] == "Schedule" for tag in tags):
+                        ec2_client.create_tags(
+                            Resources=[instance["InstanceId"]],
+                            Tags=[{'Key': sch_vars.DEFAULT_SCHEDULE_TAG_NAME, 'Value': sch_vars.DEFAULT_SCHEDULE_TAG_VALUE}]
+                        )
 
 
 def schedules_combined_with_periods():

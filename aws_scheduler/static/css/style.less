@@ -128,6 +128,12 @@ button.button {
     &__title, &__quick-schedule {
         border-bottom: 1px solid @gray;
     }
+
+    &__wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
 }
 
 .footer {
@@ -176,7 +182,7 @@ button.button {
         }
     }
 
-    &__logout, &__link {
+    &__logout {
         color: @white;
         margin-left: 32px;
     }
@@ -497,5 +503,30 @@ button.button {
     &::placeholder {
         color: @graphite;
         font-style: italic;
+    }
+}
+
+.menu {
+    a {
+        font-size: 20px;
+        color: @white;
+        text-decoration: none;
+
+        &:before {
+            content: "";
+            width: 100%;
+            height: 2px;
+            position: absolute;
+            bottom: 0;
+            background: @white;
+            transform: scaleX(0);
+            transition: transform .25s ease;
+        }
+
+        &:hover {
+            &:before {
+                transform: scaleX(1);
+            }
+        }
     }
 }

@@ -1,7 +1,7 @@
 $(document).ready(function() {
     $(".js-select2").select2();
 
-    const quickFormRds = document.querySelector(".quick-schedule__form_rds");
+    const quickFormRds = document.querySelector(".quick-schedule__form_rds") || null;
     const buttonQuickFormRds = quickFormRds.querySelector(".button");
 
     if (quickFormRds) {

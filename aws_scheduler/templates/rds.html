@@ -23,7 +23,7 @@
 <div class="header__title title">
     <div class="container">
         <div class="row col-12 header__wrapper">
-            <h1 class="title__title col-12">Schedules</h1>
+            <h1 class="title__title">Schedules</h1>
             {% if session['logged_in'] %}
                 <nav class="menu">
                     <a href="{{ url_for('index') }}">EC2</a>
@@ -63,7 +63,7 @@
                         </div>
                     </section>
                     <section class="col-12 col-md-4">
-                        <button class="button button_disabled" type="submit">Set</button>
+                        <button class="button button__disabled" type="submit">Set</button>
                     </section>
                 </form>
             </div>

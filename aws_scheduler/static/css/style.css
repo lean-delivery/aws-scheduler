@@ -388,6 +388,7 @@ button.button__disabled {
     font-size: 20px;
     color: #ffffff;
     text-decoration: none;
+    position: relative;
 }
 .menu a:before {
     content: "";

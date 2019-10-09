@@ -26,10 +26,14 @@ $(document).ready(function() {
         quickFormRds.action = `/rds/regions/${region}/instances/${dbInstancearn}/tags/add`;
     });
 
-    select2.select2().on("select2:select", () => {
+    select2.select2().on("select2:select", ({target}) => {
+        const form = findParentByClassName(target, "form");
+        const countSelectForm = form.querySelectorAll(".js-select2").length;
+
         countSelectBlock += 1;
 
-        if (select2.length === countSelectBlock) {
+        if (countSelectForm === countSelectBlock) {
+            countSelectBlock = 0;
             const form = findParentByClassName(target, "form");
 
             form.querySelector(".button").classList.remove("button__disabled");

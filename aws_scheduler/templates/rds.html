@@ -54,7 +54,7 @@
                     <section class="quick-form__select col-12 col-md-4">
                         <p class="bold">Schedule</p>
                         <div class="select">
-                            <select class="js-select2" name="schedule_name" style="width: 100%; height: 100%;">
+                            <select class="js-select2 js-select2-schedule" name="schedule_name" style="width: 100%; height: 100%;">
                                 <option disabled selected value>Select schedule</option>
                                 {% for schedule in schedules %}
                                 <option value={{schedule["name"]}}>{{ schedule["name"] }}</option>

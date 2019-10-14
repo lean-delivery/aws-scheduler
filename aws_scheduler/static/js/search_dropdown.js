@@ -3,6 +3,7 @@ $(document).ready(function() {
 
     let region = null;
     let dbInstancearn = null;
+    let valueSchedule = null;
 
     $(".js-select2").select2();
 
@@ -21,9 +22,29 @@ $(document).ready(function() {
         }
     });
 
-    quickForm.addEventListener("submit", () => {
-        if (region && dbInstancearn) {
-            quickForm.action = `/rds/regions/${region}/instances/${dbInstancearn}/tags/add`;
-        }
+    $(".js-select2-schedule").on("select2:select", ({params}) => {
+        valueSchedule = params.data.element.value;
     });
+
+    quickForm.addEventListener("submit", () => {
+        const url = `/rds/regions/${region}/instances/${dbInstancearn}/tags/add`;
+
+        callSchedule({url, valueSchedule})
+    });
+
+    function callSchedule({url = "/", method = "POST", valueSchedule}) {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url, false);
+
+        if (method === "POST") {
+            xhr.setRequestHeader("Content-Type", "application/json");
+        }
+
+        console.log(valueSchedule)
+
+        xhr.send(JSON.stringify({
+            "Key": "Schedule",
+            "Value": valueSchedule
+        }));
+    }
 });

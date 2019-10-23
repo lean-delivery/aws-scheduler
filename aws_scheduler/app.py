@@ -433,7 +433,6 @@ def set_tag(region_id, instance_id):
     json_content = request.get_json()
     response = RDS_CLIENTS[region_id].add_tags_to_resource(ResourceName=instance_id, Tags=[json_content])
     if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-        app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region_id, request.form['schedule_name'], session['username'])
         return redirect(url_for('rds_index'))
     else:
         return response
@@ -449,7 +448,6 @@ def remove_tag(region_id, instance_id):
     json_content = request.get_json()
     response = RDS_CLIENTS[region_id].remove_tags_from_resource(ResourceName=instance_id, TagKeys=json_content)
     if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-        app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region_id, request.form['schedule_name'], session['username'])
         return redirect(url_for('rds_index'))
     else:
         return response

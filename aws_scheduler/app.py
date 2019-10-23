@@ -404,7 +404,6 @@ def remove():
     if request.method == "POST":
         response = remove_tag_from_ec2_instance(request.form['instance_id'], request.form['instance_region'])
         if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-            app.logger.info('instance %s in region %s was removed from schedule by %s', request.form['instance_id'], request.form['instance_region'], session['username'])
             return redirect(url_for('index'))
         else:
             return response
@@ -417,7 +416,6 @@ def add():
         instance_id, region = request.form['instance_id'].split()  # TODO: need to refactor frontend to send this in separate variables
         response = add_tag_to_ec2_instance(instance_id, region, request.form['schedule_name'])
         if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-            app.logger.info('instance %s in region %s was added to %s schedule by %s', instance_id, region, request.form['schedule_name'], session['username'])
             return redirect(url_for('index'))
         else:
             return response

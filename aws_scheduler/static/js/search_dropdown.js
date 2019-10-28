@@ -26,10 +26,14 @@ $(document).ready(function() {
         valueSchedule = params.data.element.value;
     });
 
-    quickForm.addEventListener("submit", () => {
-        const url = `/rds/regions/${region}/instances/${dbInstancearn}/tags/add`;
+    quickForm.addEventListener("submit", (evt) => {
+        if (region && dbInstancearn) {
+            evt.preventDefault();
+            const url = `/rds/regions/${region}/instances/${dbInstancearn}/tags/add`;
+            quickForm.action = "/rds";
 
-        callSchedule({url, valueSchedule})
+            callSchedule({url, valueSchedule})
+        }
     });
 
     function callSchedule({url = "/", method = "POST", valueSchedule}) {
@@ -40,7 +44,13 @@ $(document).ready(function() {
             xhr.setRequestHeader("Content-Type", "application/json");
         }
 
-        console.log(valueSchedule)
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState !== 4) return;
+
+            if (xhr.status === 200) {
+                window.location.reload();
+            }
+        };
 
         xhr.send(JSON.stringify({
             "Key": "Schedule",

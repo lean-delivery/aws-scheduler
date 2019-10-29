@@ -134,9 +134,10 @@
                             {% for rds_instance in schedule["rds_instances_manageable"] %}
                             <li class="instance-list__instance instance">
                                 <span class="instance__name" title={{rds_instance["InstanceName"]}}>{{ rds_instance["InstanceName"] }}</span>
-                                <form action="/remove_tag" method="post">
-                                    <input type="hidden" data-dbinstancearn="{{rds_instance['DBInstanceArn']}}" name="instance_id" value={{rds_instance["InstanceId"]}}>
-                                    <input type="hidden" data-region="{{rds_instance['Region']}}" name="instance_region" value={{rds_instance["Region"]}}>
+                                <form action="/rds" method="post" class="instance-form-remove">
+                                    <input type="hidden" name="instance_id" value={{rds_instance['DBInstanceArn']}}>
+                                    <input type="hidden" name="instance_region" value={{rds_instance['Region']}}>
+                                    <input type="hidden" name="schedule_name" value={{schedule['name']}}>
                                     <button class="instance__remove" type="submit">
                                         <i class="icon-trash"></i>
                                     </button>

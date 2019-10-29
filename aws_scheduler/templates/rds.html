@@ -135,8 +135,8 @@
                             <li class="instance-list__instance instance">
                                 <span class="instance__name" title={{rds_instance["InstanceName"]}}>{{ rds_instance["InstanceName"] }}</span>
                                 <form action="/remove_tag" method="post">
-                                    <input type="hidden" data-dbinstancearn="{{instance['DBInstanceArn']}}" name="instance_id" value={{rds_instance["InstanceId"]}}>
-                                    <input type="hidden" data-region="{{instance['Region']}}" name="instance_region" value={{rds_instance["Region"]}}>
+                                    <input type="hidden" data-dbinstancearn="{{rds_instance['DBInstanceArn']}}" name="instance_id" value={{rds_instance["InstanceId"]}}>
+                                    <input type="hidden" data-region="{{rds_instance['Region']}}" name="instance_region" value={{rds_instance["Region"]}}>
                                     <button class="instance__remove" type="submit">
                                         <i class="icon-trash"></i>
                                     </button>

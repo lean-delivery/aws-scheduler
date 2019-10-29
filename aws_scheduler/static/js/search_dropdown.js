@@ -40,9 +40,8 @@ $(document).ready(function() {
 
     const handleSubmitRemove = (evt) => {
         const input = evt.target.querySelectorAll("input");
-        const [regionElement, dbInstancearnElement, valueScheduleElement] = input;
-        [region, dbInstancearn, valueSchedule] = [regionElement.value, dbInstancearnElement.value];
-
+        const [dbInstancearnElement, regionElement, valueScheduleElement] = input;
+        [region, dbInstancearn, valueSchedule] = [regionElement.value, dbInstancearnElement.value, valueScheduleElement.value];
 
         if (region && dbInstancearn) {
             evt.preventDefault();

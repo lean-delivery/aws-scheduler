@@ -17,7 +17,7 @@ $(document).ready(function() {
             currentTarget.querySelector(".button").classList.remove("button__disabled");
         }
 
-        if (target.classList.contains("js-select2")) {
+        if (target.classList.contains("js-select2-instance")) {
             region = params.data.element.dataset.region;
             dbInstancearn = params.data.element.dataset.dbinstancearn;
         }

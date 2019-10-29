@@ -1,5 +1,6 @@
 $(document).ready(function() {
     const quickForm = document.querySelector(".quick-schedule__form");
+    const rdsInstancFormAdd = document.querySelectorAll(".instances__form");
 
     let region = null;
     let dbInstancearn = null;
@@ -16,7 +17,7 @@ $(document).ready(function() {
             currentTarget.querySelector(".button").classList.remove("button__disabled");
         }
 
-        if (target.classList.contains("js-select2-instance")) {
+        if (target.classList.contains("js-select2")) {
             region = params.data.element.dataset.region;
             dbInstancearn = params.data.element.dataset.dbinstancearn;
         }
@@ -26,14 +27,20 @@ $(document).ready(function() {
         valueSchedule = params.data.element.value;
     });
 
-    quickForm.addEventListener("submit", (evt) => {
+    const handleSubmitAdd = (evt) => {
         if (region && dbInstancearn) {
             evt.preventDefault();
+
             const url = `/rds/regions/${region}/instances/${dbInstancearn}/tags/add`;
-            quickForm.action = "/rds";
 
             callSchedule({url, valueSchedule})
         }
+    };
+
+    quickForm.addEventListener("submit", handleSubmitAdd);
+
+    rdsInstancFormAdd.forEach((item) => {
+        item.addEventListener("submit", handleSubmitAdd);
     });
 
     function callSchedule({url = "/", method = "POST", valueSchedule}) {

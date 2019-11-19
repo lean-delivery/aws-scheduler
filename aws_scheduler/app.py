@@ -250,11 +250,16 @@ def set_up_default_tag():
             for instance in reservation["Instances"]:
                 if "Tags" in instance:
                     tags = instance["Tags"]
+                    instance_name = next((tag for tag in tags if tag["Key"] == "Name"), {"Value": ""})['Value']
                     launch_time_with_deploy_delay = instance["LaunchTime"] + timedelta(hours=3)
                     if datetime.now(timezone.utc) > launch_time_with_deploy_delay and not any(tag["Key"] == "Schedule" for tag in tags):
+                        default_schedule = sch_vars.DEFAULT_SCHEDULE_TAG_VALUE
+                        default_schedule_item = db_get_item(sch_vars.DEFAULT_SCHEDULES_TABLE_NAME, {"instance_name": instance_name})
+                        if 'Item' in default_schedule_item:
+                            default_schedule = default_schedule_item['Item']['default_schedule']
                         ec2_client.create_tags(
                             Resources=[instance["InstanceId"]],
-                            Tags=[{'Key': sch_vars.DEFAULT_SCHEDULE_TAG_NAME, 'Value': sch_vars.DEFAULT_SCHEDULE_TAG_VALUE}]
+                            Tags=[{'Key': sch_vars.DEFAULT_SCHEDULE_TAG_NAME, 'Value': default_schedule}]
                         )
 
 

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block main %}
+    <main class="main main__register">
+        <section class="register">
+            <div class="container">
+                <div class="row">
+                    <div class="register__content col-12 col-md-8 col-lg-6">
+                        <header class="register__heading">
+                            <h1>Register</h1>
+                            <h3 class="normal">Or <a href="{{ url_for('login') }}">Sign In</a></h3>
+                        </header>
+                        <form class="register__form" action="/register" method="POST">
+                            <label for="username" class="form__input">
+                                <input class="input input--username" type="text" id="username" name="username" placeholder="Username">
+                            </label>
+                            <label for="password" class="form__input">
+                                <input class="input input--password" id="password" type="password" name="password" placeholder="Password">
+                            </label>
+                            <label for="password2" class="form__input">
+                                <input class="input input--password" id="password2" type="password" name="password2" placeholder="Password">
+                            </label>
+                            <button class="button form__submit" type="submit">Register</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}

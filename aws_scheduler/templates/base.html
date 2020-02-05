@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>AWS Instances Scheduler&nbsp;&mdash; {% block title %}{% endblock %}</title>
+    {% block scripts %}{% endblock %}
+    <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-grid.min.css')}}" />
+    <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-reboot.min.css')}}" />
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}" />
+    <link rel="stylesheet" href="{{url_for('static', filename='css/Glyphter.css')}}" />
+    {% block style %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <nav class="header__navigation navigation">
+            <div class="container">
+                <div class="row">
+                    <div class="navigation__content col-12">
+                        <h3 class="navigation__title">AWS Instance Scheduler</h3>
+                        {% block navigation_aside %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+        {% block header %}{% endblock %}
+    </header>
+
+    {% block main %}{% endblock %}
+
+    {% block body_script %}{% endblock %}
+
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="footer__content col-12">
+                    <p>Designed by Natalia Andzhich and Julia Nikolskaya.</p>
+                    <p>Developed by Archyl Hatsyrydze, Artyom Gatalsky, Viachaslau Tsypylou and Andrei Mordasov.</p>
+                    {% block footer %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

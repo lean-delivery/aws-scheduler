@@ -1,0 +1,501 @@
+@import 'https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,400i,600,600i,700,700i&subset=latin-ext';
+@import 'https://fonts.googleapis.com/css?family=Roboto+Condensed:700&subset=latin-ext';
+
+@roboto: 'Roboto Condensed', sans-serif;
+@source-sans: 'Source Sans Pro', sans-serif;
+
+@graphite: #222222;
+@dark-gray: #464547;
+@gray: #bbbbbb;
+@light-gray: #cccccc;
+@light: #f7f7f7;
+@white: #ffffff;
+@blue: #008ace;
+@blue-hover: #2e7db5;
+@colar: #d35d47;
+
+@input-height: 44px;
+@input-height-secondary: 36px;
+
+@mobile: 768px;
+@tablet: 992px;
+
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+h1, h2, h3, p {
+    margin-top: 0;
+    color: @dark-gray;
+}
+
+h1, h2 {
+    font-family: @roboto;
+}
+
+h1 {
+    font-size: 40px;
+    line-height: 44px;
+    margin-bottom: 20px;
+}
+
+h2  {
+    font-size: 28px;
+    line-height: 32px;
+}
+
+h3, p, a, span {
+    font-family: @source-sans;
+}
+
+h3, h3>a {
+    font-size: 18px;
+    line-height: 24px;
+    letter-spacing: 0.85px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+p, a, span {
+    font-size: 16px;
+    line-height: 20px;
+}
+
+a {
+    text-decoration: underline;
+}
+
+p {
+    margin-bottom: 8px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+button.button {
+    height: @input-height;
+    border-radius: 8px;
+    padding: 0 44px;
+
+    font-family: @source-sans;
+    font-size: 18px;
+    line-height: 20px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+
+    color: @white;
+    background: @blue;
+
+    &:hover {
+        background: @blue-hover;
+    }
+
+    &--secondary {
+        height: @input-height-secondary;
+        color: @dark-gray;
+        background: @white;
+        border: 1px solid @gray;
+        padding: 0 27px;
+
+        &:hover {
+            background: @light;
+        }
+    }
+}
+
+.normal {
+    font-weight: normal;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.white {
+    color: @white;
+}
+
+.header {
+    &__title, &__quick-schedule {
+        border-bottom: 1px solid @gray;
+    }
+}
+
+.footer {
+    padding: 18px 0;
+    background: @graphite;
+
+    p {
+        color: @white;
+    }
+
+    &__content {
+        flex-direction: column;
+    }
+}
+
+.navigation {
+    padding: 18px 0;
+    background: @graphite;
+
+    &__content {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+
+    &__title {
+        color: @white;
+        margin: 0;
+    }
+
+    &__aside {
+        display: flex;
+        flex-direction: column;
+
+        @media (min-width: @mobile) {
+            flex-direction: row;
+        }
+    }
+
+    &__greetings {
+        display: none;
+        color: @white;
+
+        @media (min-width: @mobile) {
+            display: block;
+        }
+    }
+
+    &__logout {
+        color: @white;
+        margin-left: 32px;
+    }
+}
+
+.title {
+    background: @blue;
+    padding: 36px 0 28px;
+
+    &__title {
+        color: @white;
+        margin: 0;
+    }
+}
+
+.main {
+    display: flex;
+    flex: 1 0 auto;
+    background: @light;
+    padding: 32px 0;
+
+    &__register, &__login {
+        background: @blue;
+    }
+}
+
+.schedules {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+
+    .schedule:not(:last-child) {
+        margin-bottom: 16px;
+    }
+}
+
+.schedule {
+    border-top: 1px solid @gray;
+    border-bottom: 1px solid @gray;
+    background: @white;
+
+    @media (min-width: @mobile) {
+        background: none;
+        border: none;
+    }
+
+
+    &__wrapper {
+        padding: 20px 0;
+
+        @media (min-width: @mobile) {
+           background: @white;
+           border: 1px solid @gray;
+        }
+    }
+
+    &__section:not(:last-child) {
+        margin-bottom: 24px;
+
+        @media (min-width: @tablet) {
+            margin-bottom: 0;
+            border-right: 1px solid @gray;
+        }
+    }
+}
+
+.periods {
+    &__list {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+
+        @media(min-width: @tablet) {
+            flex-direction: column;
+        }
+
+        .period {
+            flex: 50%;
+
+            @media(min-width: @mobile) {
+                flex: 25%;
+            }
+
+            @media(min-width: @tablet) {
+                flex: 1;
+            }
+        }
+    }
+}
+
+.period {
+    &:not(:last-child) {
+        margin-bottom: 20px;
+    }
+}
+
+.instances {
+
+    &__form {
+        &:not(:last-child) {
+            margin-bottom: 20px;
+        }
+    }
+
+    &__list {
+
+    }
+
+}
+
+.instance-list {
+    max-height: 200px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid @gray;
+
+    //&:after {
+    //    content: '';
+    //    display: block;
+    //    box-shadow: inset 0px -40px 20px -40px @gray;
+    //}
+
+    &__instance {
+        &:not(:last-child) {
+            border-bottom: 1px solid @gray;
+        }
+    }
+}
+
+.instance {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    height: 45px;
+
+    &:hover {
+        background: @light;
+    }
+
+    &__remove {
+        -webkit-appearance: none;
+        border: 0;
+        background: transparent;
+
+        color: @dark-gray;
+
+        svg {
+            height: 20px;
+            width: 20px;
+        }
+    }
+
+    &:hover &__remove {
+        svg {
+            height: 20px;
+            width: 20px;
+            fill: @colar;
+        }
+        color: @colar;
+    }
+}
+
+.instance-form {
+    display: flex;
+
+    &__select {
+        width: 100%;
+        margin-right: 12px;
+
+        @media (min-width: @mobile) {
+            width: 50%;
+        }
+    }
+
+    &__submit {
+        margin-left: 12px;
+    }
+}
+
+.select { // this all is because at the moment we have to stick with Select2
+    .select2-selection {
+        border: 1px solid @gray !important;
+        border-radius: 0 !important;
+    }
+
+    .select2-selection, .select2-selection__arrow, .select2-selection__rendered {
+        height: @input-height !important;
+        line-height: @input-height !important;
+    }
+
+    &--secondary {
+        .select2-selection, .select2-selection__arrow, .select2-selection__rendered {
+            height: @input-height-secondary !important;
+            line-height: @input-height-secondary !important;
+        }
+
+
+    }
+}
+
+.quick-schedule {
+    padding: 20px 0;
+
+
+    &__content {
+        width: 100%;
+    }
+
+    &__title {
+        margin-bottom: 24px;
+    }
+}
+
+.quick-form {
+    display: flex;
+    align-items: flex-end;
+
+    &__select {
+        margin-bottom: 20px;
+
+        @media (min-width: @mobile) {
+            margin-bottom: 0;
+        }
+        //margin-right: 12px;
+    }
+}
+
+.login, .register {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+
+    &__content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        margin: auto;
+
+
+        border: 1px solid @gray;
+        background: @white;
+
+        padding: 28px 20px;
+
+        @media (min-width: @mobile) {
+            padding: 40px;
+        }
+    }
+
+    &__heading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 48px;
+    }
+
+    &__form {
+        width: 100%;
+
+        @media (min-width: @mobile) {
+            width: 360px;
+        }
+    }
+
+    .form {
+        display: flex;
+        flex-direction: column;
+
+        &__input {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+
+        }
+
+        &__submit {
+            align-self: flex-start;
+        }
+    }
+
+    &__footer {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid @gray;
+    }
+}
+
+.input {
+    height: @input-height;
+    border: 1px solid @gray;
+    padding-left: 16px;
+
+    font-family: @source-sans;
+    font-size: 16px;
+    line-height: 20px;
+
+    &--username, &--password {
+        padding-left: 48px;
+        background-repeat: no-repeat;
+        background-size: 18px 20px;
+        background-position: 16px;
+    }
+
+    &--username {
+        background-image: url(/static/icons/user.svg);
+    }
+
+    &--password {
+        background-image: url(/static/icons/lock.svg);
+    }
+
+
+    &::placeholder {
+        color: @graphite;
+        font-style: italic;
+    }
+}

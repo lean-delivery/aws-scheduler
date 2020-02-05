@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Schedules{% endblock %}
+
+{% block scripts %}
+    <script src="{{url_for('static', filename='js/jquery.min.js')}}"></script>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/select2.min.css')}}" />
+    <script src="{{url_for('static', filename='js/select2.min.js')}}"></script>
+{% endblock %}
+
+{% block navigation_aside %}
+    <aside class="navigation__aside">
+        {% if session['logged_in'] %}
+        <p class="navigation__greetings">Hello, <span class="bold">{{ session["username"] }}</span>!</p>
+        <a class="navigation__logout" href="{{ url_for('logout') }}">Log&nbsp;Out</a>
+        {% else %}
+        <a class="navigation__logout" href="{{ url_for('login') }}">Log&nbsp;In</a>
+        {% endif %}
+    </aside>
+{% endblock %}
+
+{% block header %}
+    <div class="header__title title">
+        <div class="container">
+            <div class="row">
+                <h1 class="title__title col-12">Schedules</h1>
+            </div>
+        </div>
+    </div>
+
+    {% if session['logged_in'] %}
+    <div class="header__quick-schedule quick-schedule">
+        <div class="container">
+            <div class="row">
+                <div class="quick-schedule__content col-12">
+                    <h2 class="quick-schedule__title">Set up your today's schedule</h2>
+                    <form class="quick-schedule__form quick-form row" action="/add_tag" method="post">
+                        <section class="quick-form__select col-12 col-md-4">
+                            <p class="bold">Instance name</p>
+                            <div class="select">
+                                <select class="js-select2" name="instance_id" style="width: 100%; height: 100%;">
+                                    <option disabled selected value>Select instance</option>
+                                    {% for instance in instances %}
+                                        <option value="{{instance['InstanceId']}} {{instance['Region']}}">{{ instance["InstanceName"] }}</option>  # TODO: refactor this to send these two variables separately
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </section>
+                        <section class="quick-form__select col-12 col-md-4">
+                            <p class="bold">Schedule</p>
+                            <div class="select">
+                                <select class="js-select2" name="schedule_name" style="width: 100%; height: 100%;">
+                                    <option disabled selected value>Select schedule</option>
+                                    {% for schedule in schedules %}
+                                    <option value={{schedule["name"]}}>{{ schedule["name"] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </section>
+                        <section class="col-12 col-md-4">
+                            <button class="button" type="submit">Set</button>
+                        </section>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block main %}
+    <main class="main">
+        <section class="schedules">
+            {% for schedule in schedules %}
+            <article class="schedule">
+                <div class="container">
+                    <div class="row schedule__wrapper">
+                        <section class="schedule__schedule schedule__section col-12 col-lg-3">
+                            <h3>{{ schedule["name"] }}</h3>
+                            <p>{{ schedule["description"] }}</p>
+                            <p>{{ schedule["timezone"] }}</p>
+                            {% if schedule["enforced"] %}
+                            <p>Enforced</p>
+                            {% endif %}
+                        </section>
+                        <section class="periods schedule__periods schedule__section col-12 col-lg-3">
+                            {% if schedule["periods"]|length > 0 and schedule["periods"] is sequence %}
+                            <h3 class="normal">Periods</h3>
+                            <div class="periods__list">
+                                {% for period in schedule["periods"] %}
+                                <div class="period">
+                                    <p class="bold">{{ period["name"] }}</p>
+                                    <p>
+                                        {{ period["description"] }}<br />
+                                        Running
+                                        {% if period["begintime"] %}
+                                        from <b>{{ period["begintime"] }}</b>
+                                        {% endif %}
+                                        {% if period["endtime"] %}
+                                        till <b>{{ period["endtime"] }}</b>
+                                        {% endif %}
+                                        <br />
+                                        {{ period["weekdays"] }}<br />
+                                        {{ period["months"] }}
+                                    </p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </section>
+                        <section class="instances schedule__instances schedule__section col-12 col-lg-6">
+                            <h3 class="normal">Instances ({{ schedule["ec2_instances"]|length }})</h3>
+                            {% if session['logged_in'] %}
+                            <form class="instances__form instance-form" action="/add_tag" method="post">
+                                <input type="hidden" name="schedule_name" value={{schedule["name"]}}>
+                                <div class="instance-form__select select select--secondary">
+                                    <select class="js-select2" name="instance_id" style="width: 100%; height: 100%;">
+                                        <option disabled selected value>Select instance</option>
+                                        {% for instance in instances %}
+                                        <option value="{{instance['InstanceId']}} {{instance['Region']}}">{{ instance["InstanceName"] }}</option>  # TODO: refactor this to send these two variables separately
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button class="button button--secondary" type="submit">Add</button>
+                            </form>
+                            {% endif %}
+                            <ul class="instances__list instance-list">
+                                {% if schedule["ec2_instances_manageable"] is defined and schedule["ec2_instances_manageable"]|length > 0 %}
+                                    {% for ec2_instance in schedule["ec2_instances_manageable"] %}
+                                    <li class="instance-list__instance instance">
+                                        <span class="instance__name" title={{ec2_instance["InstanceName"]}}>{{ ec2_instance["InstanceName"] }}</span>
+                                        <form action="/remove_tag" method="post">
+                                            <input type="hidden" name="instance_id" value={{ec2_instance["InstanceId"]}}>
+                                            <input type="hidden" name="instance_region" value={{ec2_instance["Region"]}}>
+                                            <button class="instance__remove" type="submit">
+                                                <i class="icon-trash"></i>
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% endfor %}
+                                {% endif %}
+                                {% if schedule["ec2_instances_readonly"] is defined and schedule["ec2_instances_readonly"]|length > 0 %}
+                                    {% for ec2_instance in schedule["ec2_instances_readonly"] %}
+                                    <li class="instance-list__instance instance">
+                                        <span class="instance__name" title={{ec2_instance["InstanceName"]}}>{{ ec2_instance["InstanceName"] }}</span>
+                                    </li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+
+                        </section>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+    </main>
+{% endblock %}
+
+{% block body_script %}
+    <script type="text/javascript" src="{{url_for('static', filename='js/search_dropdown.js')}}"></script>
+{% endblock %}

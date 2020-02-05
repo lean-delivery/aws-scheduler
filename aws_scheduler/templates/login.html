@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Log In{% endblock %}
+
+{% block main %}
+    <main class="main main__login">
+        <section class="login">
+            <div class="container">
+                <div class="row">
+                    <div class="login__content col-12 col-md-8 col-lg-6">
+                        <header class="login__heading">
+                            <h1>Log In</h1>
+                            <h3 class="normal">First time here? <a href="{{ url_for('register') }}">Register</a></h3>
+                        </header>
+                        {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <b>{{ message }}</b>
+                                {% endfor %}
+                            {% else %}
+                                <b>&nbsp;</b>
+                            {% endif %}
+                        {% endwith %}
+                        <form class="login__form form" action="/login" method="POST">
+                            <label for="username" class="form__input">
+                                <input class="input input--username" id="username" type="text" name="username" placeholder="Username">
+                            </label>
+                            <label for="password" class="form__input">
+                                <input class="input input--password" id="password" type="password" name="password" placeholder="Password">
+                            </label>
+                            <button class="button form__submit" type="submit">Log in</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}

@@ -1,0 +1,9 @@
+---
+dist: trusty
+
+addons:
+  sonarcloud:
+    organization: "lean-delivery"
+
+script:
+  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then sonar-scanner; fi'

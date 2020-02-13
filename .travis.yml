@@ -6,5 +6,4 @@ addons:
     organization: "lean-delivery"
 
 script:
-  - export
-  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then sonar-scanner; fi'
+  - sonar-scanner

@@ -31,7 +31,7 @@ STATE_FILTER_INCLUDE_PATTERNS = ['pending', 'running', 'stopping', 'stopped', 's
 NAME_FILTER_EXCLUDE_PATTERNS = ["CI", "terminated"]  # if ec2 machine name tag contain any of these string - it is filtered
 
 # username requirements for new users
-USERNAME_REGISTER_FILTERS = ()  # forbid using usernames which started with strings in this tuple, e.g ('euv', 'ruv'), if you don't have name convention restrictions just leave it empty
+USERNAME_REGISTER_FILTERS = ("")  # forbid using usernames which started with strings in this tuple, e.g ('euv', 'ruv'), if you don't have name convention restrictions just leave it empty
 USERNAME_MIN_LENGTH = 8
 
 # return default tag schedule task config

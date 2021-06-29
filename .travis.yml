@@ -1,9 +1,0 @@
----
-dist: trusty
-
-addons:
-  sonarcloud:
-    organization: "lean-delivery"
-
-script:
-  - sonar-scanner
